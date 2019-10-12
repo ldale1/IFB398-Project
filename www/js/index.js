@@ -1,101 +1,68 @@
 var CameraLib = {
     loadModels : (self) => {
-        window.tf_type = new TensorFlow('custom-model-type', {
-            'label': 'My Custom Model',
-            'label_path': "https://dl.dropboxusercontent.com/s/mhfwklzzivqk8sg/type_files.zip#labels.txt",
-            'model_path': "https://dl.dropboxusercontent.com/s/mhfwklzzivqk8sg/type_files.zip#type.pb",
-            'input_size': 299,
-            'image_mean': 128,
-            'image_std': 128,
-            'input_name': 'Mul',
-            'output_name': 'final_result'
-        });
+        function getOptions(labelpath, modelpath) {
+            return {
+                'label': 'My Custom Model',
+                'label_path': labelpath,
+                'model_path': modelpath,
+                'input_size': 299,
+                'image_mean': 128,
+                'image_std': 128,
+                'input_name': 'Mul',
+                'output_name': 'final_result'
+            }
+        }
 
-        window.tf_flat = new TensorFlow('custom-model-flat', {
-            'label': 'My Custom Model',
-            'label_path': "https://dl.dropboxusercontent.com/s/fj6p2u6tvcgmcoa/flat_files.zip#labels.txt",
-            'model_path': "https://dl.dropboxusercontent.com/s/fj6p2u6tvcgmcoa/flat_files.zip#flat.pb",
-            'input_size': 299,
-            'image_mean': 128,
-            'image_std': 128,
-            'input_name': 'Mul',
-            'output_name': 'final_result'
-        });
+        var labelpath = "https://dl.dropboxusercontent.com/s/mhfwklzzivqk8sg/type_files.zip#labels.txt"
+        var modelpath = "https://dl.dropboxusercontent.com/s/mhfwklzzivqk8sg/type_files.zip#type.pb";
+        window.tf_type = new TensorFlow('custom-model-type', getOptions(labelpath, modelpath));
 
-        window.tf_long = new TensorFlow('custom-model-long', {
-            'label': 'My Custom Model',
-            'label_path': "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#labels.txt",
-            'model_path': "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#long.pb",
-            'input_size': 299,
-            'image_mean': 128,
-            'image_std': 128,
-            'input_name': 'Mul',
-            'output_name': 'final_result'
-        });
+        var labelpath = "https://dl.dropboxusercontent.com/s/fj6p2u6tvcgmcoa/flat_files.zip#labels.txt";
+        var modelpath = "https://dl.dropboxusercontent.com/s/fj6p2u6tvcgmcoa/flat_files.zip#flat.pb";
+        window.tf_flat = new TensorFlow('custom-model-flat', getOptions(labelpath, modelpath));
 
-        window.tf_flat.onprogress = function(evt) {
+        var labelpath = "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#labels.txt";
+        var modelpath = "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#long.pb";
+        window.tf_long = new TensorFlow('custom-model-long', getOptions(labelpath, modelpath));
+
+        function updateDetails(evt, modelNum) {
             if (evt['status'] == 'downloading'){
-                $("#message").html("Downloading model files...");
-                $("#message").html(evt.label);
+                $("#status-loading").html("Preparing...");
                 if (evt.detail) {
-                    var carregados = evt.detail.loaded/1024/1024;
-                    var total = evt.detail.total/1024/1024;
-                    carregados = carregados.toFixed(2);
-                    total = total.toFixed(2);
-                    var perc = (carregados * 100 / total).toFixed(2);
-                    $("#message").html(`${perc}% ${carregados}MB de ${total}MB (2/3)`);
+                    var perc = (evt.detail.loaded * 100 / evt.detail.total).toFixed(2);
+                    $("#status-loading").html(`(${modelNum}/3): Downloading ${perc}%`);
                 }
-            } else if (evt['status'] == 'unzipping (2/3)') {
-                $("#message").html("Extracting contents... (2/3)");
-            } else if (evt['status'] == 'initializing (2/3)') {
-                $("#message").html("Initializing TensorFlow (2/3)");
+            } else if (evt['status'] == "unzipping") {
+                $("#status-loading").html("(" + modelNum + "/3): Extracting");
+            } else if (evt['status'] == "initializing") {
+                $("#status-loading").html("(" + modelNum + "/3): Initializing TF");
             }
+        }
+
+        window.tf_type.onprogress = (evt) => {
+            updateDetails(evt, 1);
+        };
+        window.tf_flat.onprogress = (evt) => {
+            updateDetails(evt, 2);
+        };
+        window.tf_long.onprogress = (evt) => {
+            updateDetails(evt, 3);
         };
 
-        window.tf_long.onprogress = function(evt) {
-            if (evt['status'] == 'downloading'){
-                $("#message").html("Downloading model files...");
-                $("#message").html(evt.label);
-            if (evt.detail) {
-                var carregados = evt.detail.loaded/1024/1024;
-                var total = evt.detail.total/1024/1024;
-                carregados = carregados.toFixed(2);
-                total = total.toFixed(2);
-                var perc = (carregados * 100 / total).toFixed(2);
-                $("#message").html(`${perc}% ${carregados}MB de ${total}MB (3/3)`);
-            }
-            } else if (evt['status'] == 'unzipping (3/3)') {
-                $("#message").html("Extracting contents... (3/3)");
-            } else if (evt['status'] == 'initializing (3/3)') {
-                $("#message").html("Initializing TensorFlow (3/3)");
-            }
-        };
-
-        window.tf_type.onprogress = function(evt) {
-            if (evt['status'] == 'downloading'){
-                $("#message").html("Downloading model files...");
-                $("#message").html(evt.label);
-            if (evt.detail) {
-                var carregados = evt.detail.loaded/1024/1024;
-                var total = evt.detail.total/1024/1024;
-                carregados = carregados.toFixed(2);
-                total = total.toFixed(2);
-                var perc = (carregados * 100 / total).toFixed(2);
-                $("#message").html(`${perc}% ${carregados}MB de ${total}MB (1/3)`);
-            }
-            } else if (evt['status'] == 'unzipping (1/3)') {
-                $("#message").html("Extracting contents... (1/3)");
-            } else if (evt['status'] == 'initializing (1/3)') {
-                $("#message").html("Initializing TensorFlow (1/3)");
-            }
-        };
-
+        // Load all the models
         window.tf_type.load().then(() => {
-            console.log("type loaded");
             window.tf_flat.load().then(() => {
-                console.log("flat loaded");
                 window.tf_long.load().then(() => {
-                    console.log("long loaded");
+                    console.log("All models loaded!");
+                    
+                   // Remove overlay
+                    var overlay = document.getElementById("loading-overlay");
+                    while (overlay.firstChild) {
+                        overlay.removeChild(overlay.firstChild);
+                    }
+                    $("#loading-overlay").removeClass("overlay");
+
+                    // Start predictions
                     self.CameraLib.capturePhoto(self);
                 });
             });
@@ -119,17 +86,17 @@ var CameraLib = {
 
     // Take a photo, and make a prediction
     capturePhoto: (self) => {
-        var optionsTake = {
+        console.log("Photo captured!")
+        var pictureOptions = {
             width:640,
             height:480,
             quality: 100
         };
-        CameraPreview.takePicture(optionsTake, (base64PictureData) => {
+        CameraPreview.takePicture(pictureOptions, (base64PictureData) => {
             try {
                 self.CameraLib.makePrediction(self, base64PictureData);
             } catch (err) {
-                console.log(e);
-                $("#message").html(e);
+                alert(e);
             }
         });
     },
@@ -138,12 +105,10 @@ var CameraLib = {
         imageSrcData = 'data:image/jpeg;base64,' + base64PictureData;
         //$("#deviceready").removeClass("blink");
         $('#my-img').attr('src', imageSrcData);
-
         var canvas = document.getElementById('canvas');
         var canvasSobel = document.getElementById('canvas-sobel');
         var context = canvas.getContext('2d');
         var contextSobel = canvas.getContext('2d');
-
         var ima = document.getElementById('my-img');
         ima.onload = drawImage;
 
@@ -152,7 +117,6 @@ var CameraLib = {
             var height = ima.height;
             canvas.width = width;
             canvas.height = height;
-
             context.drawImage(ima, 0, 0);
             var imageData = context.getImageData(0, 0, width, height);
 
@@ -169,22 +133,23 @@ var CameraLib = {
 
             // Show the predictions
             var parseResults = (results) => {
-                $("#message").html("");
-                console.log("-- PRED -- ")
-                results.forEach((result) => {
-                    console.log(result.title + ": " + result.confidence)
-                    $("#message").append("flat: " + result.title + ": " + result.confidence+" <br/>");
+                $("#prediction-table").html("");
+                results.forEach((result, index) => {
+                    var html = `<tr class="${(index == 0) ? 'main' : 'sub'}-prediction">
+                        <td class="col-left">${result.title}</td>
+                        <td class="col-right">:  ${(100*result.confidence).toFixed(2)}%</td>
+                    </tr>`;
+                    $("#prediction-table").append(html);
                 });
             }
 
             // Get predictions
             window.tf_type.classify(base64PictureData).then((typeResults) => {
-                var maxConfidenceType = 0;
+                var maxConfidenceType;
                 var maxTitleType;
                 typeResults.forEach((typeResult) => {
-                    if (typeResult.confidence > maxConfidenceType){
+                    if (typeResult.confidence >= 0.5){
                         maxTitleType = typeResult.title;
-                        maxConfidenceType = typeResult.confidence;
                     }
                 });
 
@@ -202,6 +167,9 @@ var CameraLib = {
         }
     }
 }
+
+
+
 
 
 

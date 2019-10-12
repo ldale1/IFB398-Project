@@ -7,25 +7,43 @@
         <meta name="msapplication-tap-highlight" content="no">
         <meta name="viewport" content="user-scalable=no, initial-scale=1, maximum-scale=1, minimum-scale=1, width=device-width">
         <link rel="stylesheet" type="text/css" href="css/index.css">
-
-        <style>
-            html, body, .ion-app, .ion-content {
-                background-color: transparent;
-            }
-            .app{
-                background:none;
-            }
-        </style>
     </head>
 
     <body>
+        <div class="wrapper">
+            <div id="status-bar"/>
+                <img id="status-icon" src="img/favicon.ico"></p>
+                <p id="status-info" class="flex-grow">DINGO Magplug Classification</p>
+            </div>
+
+            <div id="loading-overlay" class="overlay flex-container flex-grow">
+                <div class="loader"></div>
+                <p id="status-loading">Launching...</p>
+            </div>
+
+            <div id="prediction-container">
+                <table id="prediction-table" style="border-collapse: collapse; margin: 2px;">
+                    <tr class="main-prediction">
+                        <td id="first_prediction" class="col-left">NORMAL: </td>
+                        <td id="first_prediction_confidence" class="col-right">&emsp;-</td>
+                    </tr>
+                    <tr class="sub-prediction">
+                        <td id="second_prediction" class="col-left">WARNING: </td>
+                        <td id="second_prediction_confidence" class="col-right">&emsp;-</td>
+                    </tr>
+                    <tr class="sub-prediction">
+                        <td id="third_prediction" class="col-left">CRITICAL: </td>
+                        <td id="third_prediction_confidence" class="col-right">&emsp;-</td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+
         <div class="app">
             <div id="deviceready" >
                 <img width="100" src="img/logo.png" id="my-img"/>
 				<canvas id="canvas"></canvas>
 				<canvas id="canvas-sobel"></canvas>
-                <br/>
-                <span id="message" style="background-color:white;color:black;margin:3px;padding:3px">Loading...</span>
             </div>
         </div>
 
