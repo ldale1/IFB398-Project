@@ -29,7 +29,8 @@
       "cordova-plugin-camera-preview": {
         "ANDROID_SUPPORT_LIBRARY_VERSION": "26+"
       },
-      "cordova-plugin-tensorflow": {}
+      "cordova-plugin-tensorflow": {},
+      "cordova-plugin-file": {}
     },
     "platforms": [
       "android"

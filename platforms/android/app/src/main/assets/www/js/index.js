@@ -1,4 +1,53 @@
-var CameraLib = {
+var LamnLib = {
+    debug : true,
+
+    /** Inputs & outputs **/
+
+    /*
+     * All the models are loaded, predictions start
+     */
+    loadedModels : (self) => {
+        // Remove overlay
+        var overlay = document.getElementById("loading-overlay");
+        while (overlay.firstChild) {
+            overlay.removeChild(overlay.firstChild);
+        }
+        $("#loading-overlay").removeClass("overlay");
+    },
+
+    /*
+     * Ordered set of results
+     */
+    parseResults : (self, results) => {
+        $("#prediction-table").html("");
+        results.forEach((result, index) => {
+            var html = `<tr class="${(index == 0) ? 'main' : 'sub'}-prediction">
+                <td class="col-left">${result.title}</td>
+                <td class="col-right">:  ${(100*result.confidence).toFixed(2)}%</td>
+            </tr>`;
+            $("#prediction-table").append(html);
+        });
+    },
+
+    /*
+     * Model downloading, unzipping and initialisation setup events
+     */
+    updateDetails : (evt, modelNum) => {
+        if (evt['status'] == 'downloading'){
+            $("#status-loading").html("Preparing...");
+            if (evt.detail) {
+                var perc = (evt.detail.loaded * 100 / evt.detail.total).toFixed(2);
+                $("#status-loading").html(`(${modelNum}/3): Downloading ${perc}%`);
+            }
+        } else if (evt['status'] == "unzipping") {
+            $("#status-loading").html("(" + modelNum + "/3): Extracting");
+        } else if (evt['status'] == "initializing") {
+            $("#status-loading").html("(" + modelNum + "/3): Initializing TF");
+        }
+    },
+
+
+    /** Backend functionality **/
     loadModels : (self) => {
         function getOptions(labelpath, modelpath) {
             return {
@@ -25,45 +74,27 @@ var CameraLib = {
         var modelpath = "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#long.pb";
         window.tf_long = new TensorFlow('custom-model-long', getOptions(labelpath, modelpath));
 
-        function updateDetails(evt, modelNum) {
-            if (evt['status'] == 'downloading'){
-                $("#status-loading").html("Preparing...");
-                if (evt.detail) {
-                    var perc = (evt.detail.loaded * 100 / evt.detail.total).toFixed(2);
-                    $("#status-loading").html(`(${modelNum}/3): Downloading ${perc}%`);
-                }
-            } else if (evt['status'] == "unzipping") {
-                $("#status-loading").html("(" + modelNum + "/3): Extracting");
-            } else if (evt['status'] == "initializing") {
-                $("#status-loading").html("(" + modelNum + "/3): Initializing TF");
-            }
-        }
-
+        // Set setup progress events
         window.tf_type.onprogress = (evt) => {
-            updateDetails(evt, 1);
+            self.LamnLib.updateDetails(evt, 1);
         };
         window.tf_flat.onprogress = (evt) => {
-            updateDetails(evt, 2);
+            self.LamnLib.updateDetails(evt, 2);
         };
         window.tf_long.onprogress = (evt) => {
-            updateDetails(evt, 3);
+            self.LamnLib.updateDetails(evt, 3);
         };
 
         // Load all the models
         window.tf_type.load().then(() => {
             window.tf_flat.load().then(() => {
                 window.tf_long.load().then(() => {
+                    // Models loaded, remove splash
                     console.log("All models loaded!");
-                    
-                   // Remove overlay
-                    var overlay = document.getElementById("loading-overlay");
-                    while (overlay.firstChild) {
-                        overlay.removeChild(overlay.firstChild);
-                    }
-                    $("#loading-overlay").removeClass("overlay");
+                    self.LamnLib.loadedModels(self);
 
                     // Start predictions
-                    self.CameraLib.capturePhoto(self);
+                    self.LamnLib.capturePhoto(self);
                 });
             });
         });
@@ -82,6 +113,9 @@ var CameraLib = {
             tapFocus: false,
             previewDrag: false
         });
+
+        // Star the camera capturing loop
+        self.LamnLib.loadModels(self);
     },
 
     // Take a photo, and make a prediction
@@ -94,57 +128,55 @@ var CameraLib = {
         };
         CameraPreview.takePicture(pictureOptions, (base64PictureData) => {
             try {
-                self.CameraLib.makePrediction(self, base64PictureData);
+                self.LamnLib.makePrediction(self, base64PictureData);
             } catch (err) {
                 alert(e);
             }
         });
     },
 
-    makePrediction : (self, base64PictureData) => {
-        imageSrcData = 'data:image/jpeg;base64,' + base64PictureData;
-        //$("#deviceready").removeClass("blink");
-        $('#my-img').attr('src', imageSrcData);
-        var canvas = document.getElementById('canvas');
-        var canvasSobel = document.getElementById('canvas-sobel');
+
+    getSobel64 : (self, img) => {
+        // Create a canvas,
+        var canvas = document.createElement('canvas');
         var context = canvas.getContext('2d');
-        var contextSobel = canvas.getContext('2d');
-        var ima = document.getElementById('my-img');
-        ima.onload = drawImage;
+        canvas.width = img.width;
+        canvas.height = img.height;
 
-        function drawImage(event) {
-            var width = ima.width;
-            var height = ima.height;
-            canvas.width = width;
-            canvas.height = height;
-            context.drawImage(ima, 0, 0);
-            var imageData = context.getImageData(0, 0, width, height);
+        // Set it to the image, to get the picture as an ImageData
+        context.drawImage(img, 0, 0);
+        var imageData = context.getImageData(0, 0, img.width, img.height);
 
-            // Sobel constructor returns an Uint8ClampedArray with sobel data
-            var sobelData = Sobel(imageData);
+        // Convert this
+        var sobelImageData = Sobel(imageData).toImageData();
+        context.putImageData(sobelImageData, 0, 0);
+        var sobelBase64 = canvas.toDataURL('image/jpeg').split(",")[1];
 
-            // [sobelData].toImageData() returns a new ImageData object
-            var sobelImageData = sobelData.toImageData();
-            contextSobel.putImageData(sobelImageData, 0, 0);
-            var newbaseHeader = canvasSobel.toDataURL("image/jpeg");
-            var baseArray = newbaseHeader.split(",");
-            var newbase = baseArray[1];
-            var correctIndex = 0;
+        // Add a camera preview
+        if (self.LamnLib.debug) {
+            var previewWidth = 150;
+            canvas.style.cssText = `position:absolute;
+                                    left: ${window.screen.width - (previewWidth + 10) }px;
+                                    top: 10px;
+                                    width: ${previewWidth}px;
+                                    height: ${previewWidth}px;
+                                    border: 2px solid white;
+                                    border-radius: 10px;`;
+            document.body.appendChild(canvas);
+        }
+        return sobelBase64;
+    },
 
-            // Show the predictions
-            var parseResults = (results) => {
-                $("#prediction-table").html("");
-                results.forEach((result, index) => {
-                    var html = `<tr class="${(index == 0) ? 'main' : 'sub'}-prediction">
-                        <td class="col-left">${result.title}</td>
-                        <td class="col-right">:  ${(100*result.confidence).toFixed(2)}%</td>
-                    </tr>`;
-                    $("#prediction-table").append(html);
-                });
-            }
+    makePrediction : (self, base64PictureData) => {
+        // Set the context to the base image
+        var img = new Image();
+        imageSrcData = 'data:image/jpeg;base64,' + base64PictureData;
+        img.onload = (event) => {
+            // Get sobel data
+            var sobelBase64 = self.LamnLib.getSobel64(self, img);
 
-            // Get predictions
-            window.tf_type.classify(base64PictureData).then((typeResults) => {
+            window.tf_type.classify(sobelBase64).then((typeResults) => {
+                // Get the Magplug type
                 var maxConfidenceType;
                 var maxTitleType;
                 typeResults.forEach((typeResult) => {
@@ -153,28 +185,28 @@ var CameraLib = {
                     }
                 });
 
-                // Second stage predictions
+                // Based off the type, perform second stage predictions
                 if (maxTitleType == "flat"){
                     window.tf_flat.classify(base64PictureData)
-                        .then((results) => {parseResults(results)});
+                        .then((results) => {self.LamnLib.parseResults(self, results)});
                 }
                 else if (maxTitleType == "long") {
                     window.tf_long.classify(base64PictureData)
-                        .then((results) => {parseResults(results)});
+                        .then((results) => {self.LamnLib.parseResults(self, results)});
                 }
             });
-            self.CameraLib.capturePhoto(self);
+
+            // Continue the camera capture loop
+            self.LamnLib.capturePhoto(self);
         }
+        img.src = imageSrcData;
     }
 }
 
 
 
-
-
-
 var app = {
-    CameraLib : CameraLib,
+    LamnLib : LamnLib,
 
     // Application Constructor
     initialize: function() {
@@ -182,8 +214,7 @@ var app = {
     },
 
     onDeviceReady: function() {
-        CameraLib.startCamera(this);
-        CameraLib.loadModels(this);
+        LamnLib.startCamera(this);
 	},
 
     // Update DOM on a Received Event

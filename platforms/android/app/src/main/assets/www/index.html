@@ -10,19 +10,22 @@
     </head>
 
     <body>
-        <div class="wrapper">
-            <div id="status-bar"/>
+        <div class="wrapper flex flex-column">
+            <!-- Status bar -->
+            <div id="status-bar" class="flex flex-row flex-centre"/>
                 <img id="status-icon" src="img/favicon.ico"></p>
                 <p id="status-info" class="flex-grow">DINGO Magplug Classification</p>
             </div>
 
-            <div id="loading-overlay" class="overlay flex-container flex-grow">
+            <!-- Splash Screen -->
+            <div id="loading-overlay" class="overlay flex flex-centre flex-column flex-grow">
                 <div class="loader"></div>
                 <p id="status-loading">Launching...</p>
             </div>
 
-            <div id="prediction-container">
-                <table id="prediction-table" style="border-collapse: collapse; margin: 2px;">
+            <!-- Shows predictions -->
+            <div id="prediction-container" class="flex flex-row">
+                <table id="prediction-table" class="flex-grow">
                     <tr class="main-prediction">
                         <td id="first_prediction" class="col-left">NORMAL: </td>
                         <td id="first_prediction_confidence" class="col-right">&emsp;-</td>
@@ -36,14 +39,6 @@
                         <td id="third_prediction_confidence" class="col-right">&emsp;-</td>
                     </tr>
                 </table>
-            </div>
-        </div>
-
-        <div class="app">
-            <div id="deviceready" >
-                <img width="100" src="img/logo.png" id="my-img"/>
-				<canvas id="canvas"></canvas>
-				<canvas id="canvas-sobel"></canvas>
             </div>
         </div>
 
