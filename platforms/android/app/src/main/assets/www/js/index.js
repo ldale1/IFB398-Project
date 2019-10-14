@@ -1,7 +1,5 @@
 var LamnLib = {
-    debug : true,
-
-    /** Inputs & outputs **/
+    debug : false,
 
     /*
      * All the models are loaded, predictions start
@@ -34,7 +32,7 @@ var LamnLib = {
      */
     updateDetails : (evt, modelNum) => {
         if (evt['status'] == 'downloading'){
-            $("#status-loading").html("Preparing...");
+            $("#status-loading").html("(" + modelNum + "/3): Preparing...");
             if (evt.detail) {
                 var perc = (evt.detail.loaded * 100 / evt.detail.total).toFixed(2);
                 $("#status-loading").html(`(${modelNum}/3): Downloading ${perc}%`);
@@ -46,9 +44,9 @@ var LamnLib = {
         }
     },
 
-
     /** Backend functionality **/
     loadModels : (self) => {
+        console.log("Loading models..")
         function getOptions(labelpath, modelpath) {
             return {
                 'label': 'My Custom Model',
@@ -85,6 +83,11 @@ var LamnLib = {
             self.LamnLib.updateDetails(evt, 3);
         };
 
+        function loadFail(error, modelFailed) {
+            console.log(modelFailed + " " + error);
+            self.LamnLib.deleteFiles(self, modelFailed);
+        }
+
         // Load all the models
         window.tf_type.load().then(() => {
             window.tf_flat.load().then(() => {
@@ -95,9 +98,35 @@ var LamnLib = {
 
                     // Start predictions
                     self.LamnLib.capturePhoto(self);
-                });
+                }, (e) => {loadFail(e, "long")});
+            }, (e) => {loadFail(e, "flat")});
+        }, (e) => {loadFail(e, "type")});
+    },
+
+    deleteFiles : (self, modelName) => {
+        try{
+            console.log("Deleting files...")
+            // output in android: file:///storage/emulated/0/Sounds
+            var directory_path = cordova.file.externalDataDirectory;
+            window.resolveLocalFileSystemURL(directory_path , function(dirEntry) {
+                var directoryReader = dirEntry.createReader();
+                // Get a list of all the entries in the directory
+                directoryReader.readEntries((entries) => {
+                    for (i=0; i<entries.length; i++) {
+                        if (entries[i].name.includes(modelName)) {
+                            // Is directory
+                            if (entries[i].isDirectory) {
+                                entries[i].removeRecursively(() => {})
+                            }
+                            else if (entries[i].isFile) {
+                                entries[i].remove(() => {})
+                            }
+                        }
+                    }
+                }, (error) => {console.log(error)});
             });
-        });
+        } catch (error) {console.log(error)}
+        self.LamnLib.loadModels(self);
     },
 
     // Start the camera
@@ -134,7 +163,6 @@ var LamnLib = {
             }
         });
     },
-
 
     getSobel64 : (self, img) => {
         // Create a canvas,
@@ -174,7 +202,6 @@ var LamnLib = {
         img.onload = (event) => {
             // Get sobel data
             var sobelBase64 = self.LamnLib.getSobel64(self, img);
-
             window.tf_type.classify(sobelBase64).then((typeResults) => {
                 // Get the Magplug type
                 var maxConfidenceType;
@@ -187,12 +214,16 @@ var LamnLib = {
 
                 // Based off the type, perform second stage predictions
                 if (maxTitleType == "flat"){
-                    window.tf_flat.classify(base64PictureData)
-                        .then((results) => {self.LamnLib.parseResults(self, results)});
+                    window.tf_flat.classify(sobelBase64)
+                        .then((results) => {
+                            self.LamnLib.parseResults(self, results)
+                        });
                 }
                 else if (maxTitleType == "long") {
-                    window.tf_long.classify(base64PictureData)
-                        .then((results) => {self.LamnLib.parseResults(self, results)});
+                    window.tf_long.classify(sobelBase64)
+                        .then((results) => {
+                            self.LamnLib.parseResults(self, results)
+                        });
                 }
             });
 
