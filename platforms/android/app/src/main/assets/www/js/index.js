@@ -1,5 +1,5 @@
 var LamnLib = {
-    debug : false,
+    debug : true,
 
     /*
      * All the models are loaded, predictions start
@@ -63,11 +63,9 @@ var LamnLib = {
         var labelpath = "https://dl.dropboxusercontent.com/s/mhfwklzzivqk8sg/type_files.zip#labels.txt"
         var modelpath = "https://dl.dropboxusercontent.com/s/mhfwklzzivqk8sg/type_files.zip#type.pb";
         window.tf_type = new TensorFlow('custom-model-type', getOptions(labelpath, modelpath));
-
         var labelpath = "https://dl.dropboxusercontent.com/s/fj6p2u6tvcgmcoa/flat_files.zip#labels.txt";
         var modelpath = "https://dl.dropboxusercontent.com/s/fj6p2u6tvcgmcoa/flat_files.zip#flat.pb";
         window.tf_flat = new TensorFlow('custom-model-flat', getOptions(labelpath, modelpath));
-
         var labelpath = "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#labels.txt";
         var modelpath = "https://dl.dropboxusercontent.com/s/old9ppled0bahy8/long_files.zip#long.pb";
         window.tf_long = new TensorFlow('custom-model-long', getOptions(labelpath, modelpath));
@@ -83,6 +81,7 @@ var LamnLib = {
             self.LamnLib.updateDetails(evt, 3);
         };
 
+        // If the model don't load, try again
         function loadFail(error, modelFailed) {
             console.log(modelFailed + " " + error);
             self.LamnLib.deleteFiles(self, modelFailed);
